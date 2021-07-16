@@ -23,6 +23,8 @@ class FeedFragment : Fragment() {
 
     private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
 
+    private var newPosts:Int = 0
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -30,8 +32,6 @@ class FeedFragment : Fragment() {
     ): View {
         val binding = FragmentFeedBinding.inflate(inflater, container, false)
 
-
-        var y = binding.list.scrollY
 
 
         val adapter = PostsAdapter(object : OnInteractionListener {
@@ -66,12 +66,10 @@ class FeedFragment : Fragment() {
                 binding.scroll.visibility = View.VISIBLE
                 binding.scroll.setOnClickListener{
                     viewModel.scroll()
+                    binding.list.smoothScrollToPosition(0)
                     binding.scroll.visibility = View.GONE
-                    binding.list.layoutManager?.scrollToPosition(y)
-                    y = binding.list.scrollY
-
-
                 }
+                newPosts = 0
             }
         }
 
@@ -85,14 +83,19 @@ class FeedFragment : Fragment() {
                     .show()
             }
         }
-        viewModel.data.observe(viewLifecycleOwner) { state ->
-            adapter.submitList(state.posts)
-            binding.emptyText.isVisible = state.empty
-        }
+
         viewModel.newerCount.observe(viewLifecycleOwner) { state ->
-            newer(state)
+            newPosts = state
             println(state)
         }
+
+        viewModel.data.observe(viewLifecycleOwner) { state ->
+            adapter.submitList(state.posts){
+                newer(newPosts)
+            }
+            binding.emptyText.isVisible = state.empty
+        }
+
 
         binding.swiperefresh.setOnRefreshListener {
             viewModel.refreshPosts()
